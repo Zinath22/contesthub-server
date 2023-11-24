@@ -1,5 +1,5 @@
 const express = require('express');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const cors = require('cors');
 require ('dotenv').config();
@@ -29,12 +29,27 @@ async function run() {
     await client.connect();
 
 
-    const contestCollection = client.db("constestDb").collection("contest");
+    const contestCollection = client.db("contestDb").collection("contest");
 
     app.get('/contest', async(req, res) => {
       const result = await contestCollection.find().toArray();
       res.send(result);
-    })
+    });
+
+    // details 
+     app.get('/contest/:id', async(req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id)}
+      const result = await contestCollection.findOne(query);
+      res.send(result);
+     });
+
+    //  app.get('/allFood/:id', async (req, res) => {
+    //   const id = req.params.id;
+    //   const query = { _id: new ObjectId(id) }
+    //   const result = await foodCollection.findOne(query);
+    //   res.send(result);
+    // });
 
     
     // Send a ping to confirm a successful connection
