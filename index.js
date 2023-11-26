@@ -60,6 +60,12 @@ async function run() {
       res.send(result);
     });
     //  payment 
+    
+    app.get('/payments', async (req, res) => {
+      const result = await paymentCollection.find().toArray();
+      res.send(result);
+    });
+
     app.post('/create-payment-intent', async (req, res) => {
       const { price } = req.body;
       const amount = parseInt(price * 100);
