@@ -30,10 +30,63 @@ async function run() {
     await client.connect();
 
 
+    const userCollection = client.db("contestDb").collection("users");
+    const creatorCollection = client.db("contestDb").collection("creator");
     const contestCollection = client.db("contestDb").collection("contest");
     const paymentCollection = client.db("contestDb").collection("payments");
     // const userCollection = client.db("contestDb").collection("payments");
     
+    // user related api 
+    app.get('/users', async(req, res) => {
+      const result = await userCollection.find().toArray();
+        res.send(result);
+      });
+
+
+    app.post('/users', async(req, res) => {
+      const user = req.body;
+
+       // insert email if user doesnt exists:
+      // you can do this many ways ( 1. email unique, 2. upsert 3. simple checking)
+      const query = { email: user.email }
+      const existingUser = await userCollection.findOne(query);
+      if(existingUser){
+        return res.send({message: 'user already exists', insertedId: null })
+      }
+
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
+
+    // make admin 
+    app.patch('/users/admin/:id', async(req, res) =>{
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const updatedDoc = {
+        $set: {
+          role: 'admin'
+        }
+      }
+      const result = await userCollection.updateOne(filter, updatedDoc)
+      res.send(result);
+
+    })
+
+    // user delete 
+    app.delete('/users/:id', async(req, res) => {
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id) }
+      const result = await userCollection.deleteOne(query);
+      res.send(result);
+    })
+
+    // creator api 
+    app.post('/creator', async(req, res) => {
+      const creator = req.body;
+      const result = await creatorCollection.insertOne(creator);
+      res.send(result);
+    });
+
 
     app.get('/contest', async (req, res) => {
       const result = await contestCollection.find().toArray();
