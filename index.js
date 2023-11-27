@@ -171,14 +171,6 @@ async function run() {
       const result = await contestCollection.find().toArray();
       res.send(result);
     });
-    
-    // add item 
-    app.post('/contest',verifyToken, async(req, res) =>{
-      const item = req.body;
-      const result = await contestCollection.insertOne(item);
-      res.send(result);
-    })
-
 
     // details 
     app.get('/contest/:id', async (req, res) => {
@@ -187,6 +179,46 @@ async function run() {
       const result = await contestCollection.findOne(query);
       res.send(result);
     });
+    
+    // add item 
+    app.post('/contest',verifyToken, async(req, res) =>{
+      const item = req.body;
+      const result = await contestCollection.insertOne(item);
+      res.send(result);
+    });
+
+    //  update item 
+    app.get('/contest/:id', async(req, res) =>{
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)}
+      const result = await contestCollection.findOne(query);
+      res.send(result);
+    });
+
+// update 
+    app.patch('/contest/:id', async (req, res) => {
+      const item = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const updatedDoc = {
+        $set: {
+          contest_name: item.contest_name,
+          img: item.img,
+          tag: item.tag,
+          fee: item.fee,
+          description: item.description,
+          instruction: item.instruction,
+          prize: item.prize,
+          deadline: item.deadline
+
+        }
+      }
+      const result = await contestCollection.updateOne(filter, updatedDoc)
+      res.send(result);
+    })
+
+
+    
 
     app.delete('/contest/:id',verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
