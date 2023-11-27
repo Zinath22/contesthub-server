@@ -176,7 +176,8 @@ async function run() {
       const result = await surveyCollection.insertOne(item);
       res.send(result);
     });
-    //  payment 
+
+    //  payment api
     
     app.get('/payments', async (req, res) => {
       const result = await paymentCollection.find().toArray();
