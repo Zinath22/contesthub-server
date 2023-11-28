@@ -107,6 +107,33 @@ async function run() {
       })
 
 
+
+          //  update user profile
+    app.get('/users/:id', async(req, res) =>{
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)}
+      const result = await userCollection.findOne(query);
+      res.send(result);
+    });
+
+// update profile
+    app.patch('/users/:id', async (req, res) => {
+      const user = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const updatedDoc = {
+        $set: {
+          displayName: user.displayName,
+          photoURL: user.photoURL
+        
+
+        }
+      }
+      const result = await contestCollection.updateOne(filter, updatedDoc)
+      res.send(result);
+    })
+
+
     app.post('/users', async(req, res) => {
       const user = req.body;
 
@@ -121,6 +148,7 @@ async function run() {
       const result = await userCollection.insertOne(user);
       res.send(result);
     });
+
 
     // make admin 
     app.patch('/users/admin/:id', async(req, res) =>{
@@ -225,7 +253,22 @@ async function run() {
       const query = {_id: new ObjectId(id)}
       const result = await contestCollection.deleteOne(query);
       res.send(result);
-     })
+     });
+
+    //  approve
+
+    app.patch('/contest/:id', async(req, res) =>{
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const updatedDoc = {
+        $set: {
+          pending: 'accepted'
+        }
+      }
+      const result = await contestCollection.updateOne(filter, updatedDoc)
+      res.send(result);
+
+    })
 
     //  register
     app.get('/register', async (req, res) => {
