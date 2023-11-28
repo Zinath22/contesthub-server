@@ -98,6 +98,7 @@ async function run() {
       }
   
       // use verify admin after verifyToken
+
       const verifyAdmin = async (req, res, next) => {
         const email = req.decoded.email;
         const query = { email: email };
@@ -109,16 +110,16 @@ async function run() {
         next();
       }
 
-      const verifyCreator = async (req, res, next) => {
-        const email = req.decoded.email;
-        const query = { email: email };
-        const user = await userCollection.findOne(query);
-        const isCreator = user?.creator === 'creator';
-        if (!isCreator) {
-          return res.status(403).send({ message: 'forbidden access' });
-        }
-        next();
-      }
+      // const verifyCreator = async (req, res, next) => {
+      //   const email = req.decoded.email;
+      //   const query = { email: email };
+      //   const user = await userCollection.findOne(query);
+      //   const isCreator = user?.creator === 'creator';
+      //   if (!isCreator) {
+      //     return res.status(403).send({ message: 'forbidden access' });
+      //   }
+      //   next();
+      // }
 
     
     // user related api 
@@ -130,7 +131,7 @@ async function run() {
 
       // user admin check 
 
-      app.get('/users/admin/:email', verifyToken,verifyAdmin, async(req, res) =>{
+      app.get('/users/admin/:email',verifyToken, verifyAdmin,  async(req, res) =>{
        const email = req.params.email;
       if(email !== req.decoded.email){
         return res.status(403).send({message: 'forbidden access'})
@@ -146,7 +147,7 @@ async function run() {
       })
 
 
-      app.get('/users/creator/:email', verifyToken,verifyCreator, async(req, res) =>{
+      app.get('/users/creator/:email', async(req, res) =>{
        const email = req.params.email;
       if(email !== req.decoded.email){
         return res.status(403).send({message: 'forbidden access'})
@@ -184,7 +185,7 @@ async function run() {
 
         }
       }
-      const result = await contestCollection.updateOne(filter, updatedDoc)
+      const result = await userCollection.updateOne(filter, updatedDoc)
       res.send(result);
     })
 
@@ -270,7 +271,7 @@ async function run() {
     });
     
     // add item 
-    app.post('/contest',verifyToken, async(req, res) =>{
+    app.post('/contest', async(req, res) =>{
       const item = req.body;
       const result = await contestCollection.insertOne(item);
       res.send(result);
@@ -309,7 +310,7 @@ async function run() {
 
     
 
-    app.delete('/contest/:id',verifyToken, verifyAdmin, async (req, res) => {
+    app.delete('/contest/:id', async (req, res) => {
       const id = req.params.id;
       const query = {_id: new ObjectId(id)}
       const result = await contestCollection.deleteOne(query);
@@ -324,7 +325,7 @@ async function run() {
       const filter = { _id: new ObjectId(id) };
       const updatedDoc = {
         $set: {
-          status: "accept"
+          status: "accepted"
         }
       }
       const result = await contestCollection.updateOne(filter, updatedDoc);
@@ -346,13 +347,13 @@ async function run() {
 
     //  register
     app.get('/register', async (req, res) => {
-      const result = await surveyCollection.find().toArray();
+      const result = await creatorCollection.find().toArray();
       res.send(result);
     });
 
     app.post('/register', async (req, res) => {
       const item = req.body;
-      const result = await surveyCollection.insertOne(item);
+      const result = await creatorCollection.insertOne(item);
       res.send(result);
     });
 
