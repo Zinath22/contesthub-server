@@ -207,7 +207,7 @@ async function run() {
 
 
     // make admin 
-    app.patch('/users/admin/:id', async(req, res) =>{
+    app.patch('/users/admin/:id',verifyToken, verifyAdmin, async(req, res) =>{
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) }
       const updatedDoc = {
@@ -220,7 +220,7 @@ async function run() {
 
     });
 
-    ///
+    /// make creator
     
     app.patch('/users/creator/:id', async(req, res) =>{
       const id = req.params.id;
@@ -233,7 +233,23 @@ async function run() {
       const result = await userCollection.updateOne(filter, updatedDoc)
       res.send(result);
 
+    });
+
+    // make winner 
+
+    app.patch('payments/winner/:id', async(req, res) =>{
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const updatedDoc = {
+        $set: {
+          winner: true
+        }
+      }
+      const result = await paymentCollection.updateOne(filter, updatedDoc)
+      res.send(result);
+
     })
+
 
     // user delete 
     app.delete('/users/:id',verifyToken, verifyAdmin, async(req, res) => {
@@ -357,44 +373,113 @@ async function run() {
       res.send(result);
     });
 
-    //  payment api
-    
-    app.get('/payments', async (req, res) => {
-      const result = await paymentCollection.find().toArray();
+      // payment intent 
+      app.post('/create-payment-intent', async(req, res) =>{
+        const {price} = req.body;
+        const amount = parseInt(price * 100);
+        console.log(amount, 'amount')
+  
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: amount,
+          currency: 'usd',
+          payment_method_types: ['card']
+        });
+        res.send({
+          clientSecret: paymentIntent.client_secret
+        })
+      });
+  
+      // payment 
+
+      app.get('/payments', async(req, res) => {
+        const result = await paymentCollection.find().toArray();
+        res.send(result);
+     });
+
+     app.get('/payments/:id', async(req, res) =>{
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)}
+      const result = await paymentCollection.findOne(query);
       res.send(result);
     });
 
-    app.post('/create-payment-intent', async (req, res) => {
-      const { price } = req.body;
-      const amount = parseInt(price * 100);
-      console.log('amount', amount);
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: amount,
-        currency: 'usd',
-        payment_method_types: ['card']
+      app.get('/payments/:email', async(req, res) => {
+        const query = { email: req.params.email }
+        if(req.params.email !== req.decoded.email){
+              return res.status(403).send({message: 'forbidden access'});
+        }
+        const result = await paymentCollection.find(query).toArray();
+        res.send(result);
+      });
+  
+  
+      app.post('/payments', async(req, res) => {
+        const payment = req.body;
+        const paymentResult = await paymentCollection.insertOne(payment);
+  
+        // carefully delete each item from cart 
+        console.log('payment info', payment);
+        // const query = {_id: {
+        //   $in: payment.cartIds.map(id => new ObjectId(id))
+        // }};
+  
+        // const deleteResult = await cartCollection.deleteMany(query);
+  
+        res.send({paymentResult});
       });
 
-      res.send({
-        clientSecret: paymentIntent.client_secret
-      })
-    })
+    //  payment api
 
-    //  send payment database 
-    app.post('/payments', async (req, res) => {
-      const payment = req.body;
-      const paymentResult = await paymentCollection.insertOne(payment);
+    // app.patch('/payments/winner/:id', async(req, res) =>{
+    //   const id = req.params.id;
+    //   const filter = { _id: new ObjectId(id) }
+    //   const updatedDoc = {
+    //     $set: {
+    //       winner: true
+    //     }
+    //   }
+    //   const result = await paymentCollection.updateOne(filter, updatedDoc)
+    //   res.send(result);
+      
 
-      console.log('payment info', payment);
-      const query = {
-        _id: {
-          $in: payment.contestIds.map(id => new ObjectId(id))
-        }
-      };
+    // });
+    
+    // app.get('/payments', async (req, res) => {
+    //   const result = await paymentCollection.find().toArray();
+    //   res.send(result);
+    // });
 
-      // const deleteresult = await contestCollection.deleteMany(query);
+    // app.post('/create-payment-intent', async (req, res) => {
+    //   const { price } = req.body;
+    //   const amount = parseInt(price * 100);
+    //   console.log('amount', amount);
+    //   const paymentIntent = await stripe.paymentIntents.create({
+    //     amount: amount,
+    //     currency: 'usd',
+    //     payment_method_types: ['card']
+    //   });
 
-      res.send({ paymentResult })
-    })
+    //   res.send({
+    //     clientSecret: paymentIntent.client_secret
+    //   })
+    // })
+
+    // //  send payment database 
+    // app.post('/payments', async (req, res) => {
+    //   const payment = req.body;
+    //   const paymentResult = await paymentCollection.insertOne(payment);
+
+    //   console.log('payment info', payment);
+    //   const query = {
+    //     _id: {
+    //       $in: payment.contestIds.map(id => new ObjectId(id))
+    //     }
+    //   };
+
+    //   // const deleteresult = await contestCollection.deleteMany(query);
+
+    //   res.send({ paymentResult })
+    // })
 
 
 
