@@ -100,7 +100,7 @@ async function run() {
 
       // user admin check 
 
-      app.get('/users/admin/:email',verifyToken, verifyAdmin,  async(req, res) =>{
+      app.get('/users/admin/:email',verifyToken,   async(req, res) =>{
        const email = req.params.email;
       if(email !== req.decoded.email){
         return res.status(403).send({message: 'forbidden access'})
@@ -116,7 +116,7 @@ async function run() {
       })
 
 
-      app.get('/users/creator/:email',verifyToken, verifyAdmin,  async(req, res) =>{
+      app.get('/users/creator/:email',verifyToken,   async(req, res) =>{
        const email = req.params.email;
       if(email !== req.decoded.email){
         return res.status(403).send({message: 'forbidden access'})
@@ -132,12 +132,8 @@ async function run() {
       })
 
 
-      
-
-
-
-          //  update user profile
-    app.get('/users/:id', async(req, res) =>{
+         //  update user profile
+      app.get('/users/:id', async(req, res) =>{
       const id = req.params.id;
       const query = {_id: new ObjectId(id)}
       const result = await userCollection.findOne(query);
@@ -204,7 +200,7 @@ app.patch('/users/:id', async (req, res) => {
 
 
     // make admin 
-    app.patch('/users/admin/:id',verifyToken, verifyAdmin, async(req, res) =>{
+    app.patch('/users/admin/:id',verifyToken,  async(req, res) =>{
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) }
       const updatedDoc = {
@@ -219,7 +215,7 @@ app.patch('/users/:id', async (req, res) => {
 
     /// make creator
     
-    app.patch('/users/creator/:id',verifyToken,verifyAdmin, async(req, res) =>{
+    app.patch('/users/creator/:id',verifyToken, async(req, res) =>{
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) }
       const updatedDoc = {
@@ -232,7 +228,7 @@ app.patch('/users/:id', async (req, res) => {
 
     });
     
-    app.patch('/users/user/:id',verifyToken,verifyAdmin, async(req, res) =>{
+    app.patch('/users/user/:id',verifyToken, async(req, res) =>{
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) }
       const updatedDoc = {
@@ -248,7 +244,7 @@ app.patch('/users/:id', async (req, res) => {
 
     // make winner 
 
-    app.patch('/payments/winner/:id',verifyToken, verifyCreator, async(req, res) =>{
+    app.patch('/payments/winner/:id',verifyToken,  async(req, res) =>{
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) }
       const updatedDoc = {
@@ -263,7 +259,7 @@ app.patch('/users/:id', async (req, res) => {
 
 
     // user delete 
-    app.delete('/users/:id',verifyToken, verifyAdmin, async(req, res) => {
+    app.delete('/users/:id',verifyToken, async(req, res) => {
       const id = req.params.id;
       const query = {_id: new ObjectId(id) }
       const result = await userCollection.deleteOne(query);
@@ -275,7 +271,7 @@ app.patch('/users/:id', async (req, res) => {
 
 
 
-    app.post('/creator',verifyToken,verifyCreator, async(req, res) => {
+    app.post('/creator',verifyToken, async(req, res) => {
       const creator = req.body;
       const result = await creatorCollection.insertOne(creator);
       res.send(result);
@@ -298,7 +294,7 @@ app.patch('/users/:id', async (req, res) => {
     });
     
     // add item 
-    app.post('/contest', async(req, res) =>{
+    app.post('/contest',verifyToken, async(req, res) =>{
       const item = req.body;
       const result = await contestCollection.insertOne(item);
       res.send(result);
@@ -313,7 +309,7 @@ app.patch('/users/:id', async (req, res) => {
     });
 
 // update 
-    app.patch('/contest/:id', async (req, res) => {
+    app.patch('/contest/:id',verifyToken, async (req, res) => {
       const item = req.body;
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) }
@@ -389,6 +385,21 @@ app.patch('/users/:id', async (req, res) => {
     });
 
       // payment intent 
+      // app.post('/create-payment-intent', async(req, res) =>{
+      //   const {price} = req.body;
+      //   const amount = parseInt(price * 100);
+      //   console.log(amount, 'amount')
+  
+      //   const paymentIntent = await stripe.paymentIntents.create({
+      //     amount: amount,
+      //     currency: 'usd',
+      //     payment_method_types: ['card']
+      //   });
+      //   res.send({
+      //     clientSecret: paymentIntent.client_secret
+      //   })
+      // });
+
       app.post('/create-payment-intent', async(req, res) =>{
         const {price} = req.body;
         const amount = parseInt(price * 100);
@@ -448,43 +459,43 @@ app.patch('/users/:id', async (req, res) => {
         res.send({paymentResult});
       });
       // stats 
-      app.get('/order-stats',verifyToken, verifyAdmin, async(req, res) => {
-        const result = await paymentCollection.aggregate([
-          {
-            $unwind: '$menuItemIds'
-          },
-          {
-            $lookup: {
-              from: 'menu',
-              localField: 'menuItemIds',
-              foreignField: '_id',
-              as: 'menuItems'
-            }
-          },
-          {
-            $unwind: '$menuItems'
-          },
-          {
-            $group: {
-              _id: '$menuItems.category',
-              quantity: { $sum :1 },
-              revenue: { $sum: '$menuItems.price'}
-            }
+      // app.get('/order-stats',verifyToken, async(req, res) => {
+      //   const result = await paymentCollection.aggregate([
+      //     {
+      //       $unwind: '$menuItemIds'
+      //     },
+      //     {
+      //       $lookup: {
+      //         from: 'menu',
+      //         localField: 'menuItemIds',
+      //         foreignField: '_id',
+      //         as: 'menuItems'
+      //       }
+      //     },
+      //     {
+      //       $unwind: '$menuItems'
+      //     },
+      //     {
+      //       $group: {
+      //         _id: '$menuItems.category',
+      //         quantity: { $sum :1 },
+      //         revenue: { $sum: '$menuItems.price'}
+      //       }
            
-          },
-          {
-            $project: {
-              _id: 0,
-              category: '$_id',
-              quantity: '$quantity',
-              revenue: '$revenue'
-            }
-          }
-        ]).toArray();
+      //     },
+      //     {
+      //       $project: {
+      //         _id: 0,
+      //         category: '$_id',
+      //         quantity: '$quantity',
+      //         revenue: '$revenue'
+      //       }
+      //     }
+      //   ]).toArray();
           
   
-        res.send(result);
-      })
+      //   res.send(result);
+      // })
 
 
 
