@@ -45,11 +45,7 @@ async function run() {
         expiresIn: '1h'});
       res.send({token});
     })
-    // app.post('/jwt', async(req, res) => {
-    //   const user = req.body;
-    //   const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECREt, {expiresIn: '1h' })
-    //   res.send({token});
-    // })
+    
 
     // middleware verify token 
       //  const verifyToken = (req, res, next) => {
@@ -110,16 +106,17 @@ async function run() {
         next();
       }
 
-      // const verifyCreator = async (req, res, next) => {
-      //   const email = req.decoded.email;
-      //   const query = { email: email };
-      //   const user = await userCollection.findOne(query);
-      //   const isCreator = user?.creator === 'creator';
-      //   if (!isCreator) {
-      //     return res.status(403).send({ message: 'forbidden access' });
-      //   }
-      //   next();
-      // }
+      const verifyCreator = async (req, res, next) => {
+        const email = req.decoded.email;
+        const query = { email: email };
+        const user = await userCollection.findOne(query);
+        const isCreator = user?.role === 'craetor';
+        if (!isCreator) {
+          return res.status(403).send({ message: 'forbidden access' });
+        }
+        next();
+      }
+
 
     
     // user related api 
@@ -147,7 +144,7 @@ async function run() {
       })
 
 
-      app.get('/users/creator/:email', async(req, res) =>{
+      app.get('/users/creator/:email',verifyToken, verifyAdmin,  async(req, res) =>{
        const email = req.params.email;
       if(email !== req.decoded.email){
         return res.status(403).send({message: 'forbidden access'})
@@ -157,10 +154,13 @@ async function run() {
       const user = await userCollection.findOne(query);
       let creator = false;
       if(user){
-        creator = user.creator === 'creator';
+        creator = user.role === 'creator';
       }
-      res.send({ creator});
+      res.send({creator});
       })
+
+
+      
 
 
 
@@ -222,12 +222,26 @@ async function run() {
 
     /// make creator
     
-    app.patch('/users/creator/:id', async(req, res) =>{
+    app.patch('/users/creator/:id',verifyToken,verifyAdmin, async(req, res) =>{
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) }
       const updatedDoc = {
         $set: {
-          creator: 'creator'
+          role : 'creator'
+        }
+      }
+      const result = await userCollection.updateOne(filter, updatedDoc)
+      res.send(result);
+
+    });
+    
+    app.patch('/users/user/:id',verifyToken,verifyAdmin, async(req, res) =>{
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) }
+      const updatedDoc = {
+        $set: {
+          role : 'user'
+
         }
       }
       const result = await userCollection.updateOne(filter, updatedDoc)
@@ -237,7 +251,7 @@ async function run() {
 
     // make winner 
 
-    app.patch('payments/winner/:id', async(req, res) =>{
+    app.patch('/payments/winner/:id',verifyToken, verifyCreator, async(req, res) =>{
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) }
       const updatedDoc = {
@@ -264,7 +278,7 @@ async function run() {
 
 
 
-    app.post('/creator', async(req, res) => {
+    app.post('/creator',verifyToken,verifyCreator, async(req, res) => {
       const creator = req.body;
       const result = await creatorCollection.insertOne(creator);
       res.send(result);
@@ -427,6 +441,8 @@ async function run() {
   
         res.send({paymentResult});
       });
+      // stats 
+    
 
     //  payment api
 
