@@ -36,7 +36,7 @@ async function run() {
     const creatorCollection = client.db("contestDb").collection("creator");
     const contestCollection = client.db("contestDb").collection("contest");
     const paymentCollection = client.db("contestDb").collection("payments");
-    // const userCollection = client.db("contestDb").collection("payments");
+    const bestCollection = client.db("contestDb").collection("bestCreator");
 
     //  jwt related api 
     app.post('/jwt', async(req, res) => {
@@ -48,35 +48,7 @@ async function run() {
     
 
     // middleware verify token 
-      //  const verifyToken = (req, res, next) => {
-      //   console.log('inside token',req.headers.authorization);
-      //   if(!req.headers.authorization){
-      //     return res.status(401).send({message: 'unauthorized access'});
-      //   }
-
-      //   const token = req.headers.authorization.split(' ')[1];
-      //    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-      //     if(err){
-      //       return res.status(401).send({message: 'unauthorized access'})
-      //     }
-      //     req.decoded = decoded;
-      //     next();
-      //    })
-        
-      //  }
-
-  // use verify admin after verify token 
-      //  const verifyAdmin = async(req, res, next) =>{
-      //   const email = req.decoded.email;
-      //   const query = {email : email};
-      //   const user = await userCollection.findOne(query);
-      //   const isAdmin = user?.role === 'admin';
-      //   if(!isAdmin){
-      //     return res.status(403).send({message: 'forbidden access'});
-
-      //   }
-      //   next();
-      //  }
+    
 
       const verifyToken = (req, res, next) => {
         // console.log('inside verify token', req.headers.authorization);
@@ -173,21 +145,46 @@ async function run() {
     });
 
 // update profile
-    app.patch('/users/:id', async (req, res) => {
-      const user = req.body;
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) }
-      const updatedDoc = {
-        $set: {
-          displayName: user.displayName,
-          photoURL: user.photoURL
+
+app.patch('/users/:id', async (req, res) => {
+  try {
+    const user = req.body;
+    const id = req.params.id;
+    const filter = { _id: new ObjectId(id) };
+    const updatedDoc = {
+      $set: {
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+      },
+    };
+    const result = await userCollection.updateOne(filter, updatedDoc);
+
+    if (result.modifiedCount > 0) {
+      res.status(200).json({ updated: true });
+    } else {
+      res.status(404).json({ updated: false });
+    }
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+    // app.patch('/users/:id', async (req, res) => {
+    //   const user = req.body;
+    //   const id = req.params.id;
+    //   const filter = { _id: new ObjectId(id) }
+    //   const updatedDoc = {
+    //     $set: {
+    //       displayName: user.displayName,
+    //       photoURL: user.photoURL
         
 
-        }
-      }
-      const result = await userCollection.updateOne(filter, updatedDoc)
-      res.send(result);
-    })
+    //     }
+    //   }
+    //   const result = await userCollection.updateOne(filter, updatedDoc)
+    //   res.send(result);
+    // })
 
 
     app.post('/users', async(req, res) => {
@@ -376,6 +373,10 @@ async function run() {
     // })
 
     //  register
+    app.get('/bestCreator', async (req, res) => {
+      const result = await bestCollection.find().toArray();
+      res.send(result);
+    });
     app.get('/register', async (req, res) => {
       const result = await creatorCollection.find().toArray();
       res.send(result);
@@ -403,6 +404,11 @@ async function run() {
         })
       });
   
+
+
+
+
+      // 
       // payment 
 
       app.get('/payments', async(req, res) => {
@@ -442,60 +448,43 @@ async function run() {
         res.send({paymentResult});
       });
       // stats 
-    
-
-    //  payment api
-
-    // app.patch('/payments/winner/:id', async(req, res) =>{
-    //   const id = req.params.id;
-    //   const filter = { _id: new ObjectId(id) }
-    //   const updatedDoc = {
-    //     $set: {
-    //       winner: true
-    //     }
-    //   }
-    //   const result = await paymentCollection.updateOne(filter, updatedDoc)
-    //   res.send(result);
-      
-
-    // });
-    
-    // app.get('/payments', async (req, res) => {
-    //   const result = await paymentCollection.find().toArray();
-    //   res.send(result);
-    // });
-
-    // app.post('/create-payment-intent', async (req, res) => {
-    //   const { price } = req.body;
-    //   const amount = parseInt(price * 100);
-    //   console.log('amount', amount);
-    //   const paymentIntent = await stripe.paymentIntents.create({
-    //     amount: amount,
-    //     currency: 'usd',
-    //     payment_method_types: ['card']
-    //   });
-
-    //   res.send({
-    //     clientSecret: paymentIntent.client_secret
-    //   })
-    // })
-
-    // //  send payment database 
-    // app.post('/payments', async (req, res) => {
-    //   const payment = req.body;
-    //   const paymentResult = await paymentCollection.insertOne(payment);
-
-    //   console.log('payment info', payment);
-    //   const query = {
-    //     _id: {
-    //       $in: payment.contestIds.map(id => new ObjectId(id))
-    //     }
-    //   };
-
-    //   // const deleteresult = await contestCollection.deleteMany(query);
-
-    //   res.send({ paymentResult })
-    // })
+      app.get('/order-stats',verifyToken, verifyAdmin, async(req, res) => {
+        const result = await paymentCollection.aggregate([
+          {
+            $unwind: '$menuItemIds'
+          },
+          {
+            $lookup: {
+              from: 'menu',
+              localField: 'menuItemIds',
+              foreignField: '_id',
+              as: 'menuItems'
+            }
+          },
+          {
+            $unwind: '$menuItems'
+          },
+          {
+            $group: {
+              _id: '$menuItems.category',
+              quantity: { $sum :1 },
+              revenue: { $sum: '$menuItems.price'}
+            }
+           
+          },
+          {
+            $project: {
+              _id: 0,
+              category: '$_id',
+              quantity: '$quantity',
+              revenue: '$revenue'
+            }
+          }
+        ]).toArray();
+          
+  
+        res.send(result);
+      })
 
 
 
